@@ -45,7 +45,7 @@ object CleanUpEmptyFilesTool {
       val group = fileStatus.getGroup
       val permission = fileStatus.getPermission
 
-      if (len == 0 && !filePath.getName.startsWith("_") && !filePath.getName.startsWith(".")) {
+      if (fileStatus.isFile && len == 0 && !filePath.getName.startsWith("_") && !filePath.getName.startsWith(".")) {
         println(permission + " " + replication + " " + fileOwner + " " + group + " " + len + " " + new Date(modTime) + " " + filePath)
         fileCounter += 1
       }
@@ -69,7 +69,7 @@ object CleanUpEmptyFilesTool {
       val group = fileStatus.getGroup
       val permission = fileStatus.getPermission
 
-      if (len == 0 && !filePath.getName.startsWith("_") && !filePath.getName.startsWith(".")) {
+      if (fileStatus.isFile && len == 0 && !filePath.getName.startsWith("_") && !filePath.getName.startsWith(".")) {
         println(permission + " " + replication + " " + fileOwner + " " + group + " " + len + " " + new Date(modTime) + " " + filePath)
         fileCounter += 1
         fs.delete(fileStatus.getPath, false)
