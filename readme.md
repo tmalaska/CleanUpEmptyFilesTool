@@ -18,3 +18,8 @@ The following cmd will make a test folder for you to test on
 
 hadoop jar CleanUpEmptyFilesTool.jar com.cloudera.sa.cap1.largefileutil.GenTestFolder 100 folderName
 
+#ReviewTablesTool
+This tool is designed to look through your tables and tell you if you could benefit from a compaction
+
+##How to run
+hadoop jar CleanUpEmptyFilesTool.jar com.cloudera.sa.cap1.largefileutil.ReviewTablesTool <inputFileForListOfTables> <FileSizeThresholdInMB> <recommendedFileSize>

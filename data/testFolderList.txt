@@ -1,0 +1,2 @@
+a	b	c	d	/Users/ted.malaska/Documents/workspace/github/CleanUpEmptyFilesTool/data/exampleTable
+a	b	c	d	/Users/ted.malaska/Documents/workspace/github/CleanUpEmptyFilesTool/data/exampleTable2
