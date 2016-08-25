@@ -40,8 +40,11 @@ object ReviewTablesTool {
       (path, folderStats)
     })
 
+    val summaryFolderStat = new FolderStats()
+
     folderStatMap.foreach(r => {
 
+      println("Starting: " + r._1)
       val possibleCompactionFileCount = (r._2.numberOfFiles - r._2.numberOfSmallFiles) +
         (1 + (r._2.smallFileTotalSize / (recommendedFileSizeInMb * 1000000)))
 
@@ -50,14 +53,28 @@ object ReviewTablesTool {
         ",NumberOfSmallFiles:" + r._2.numberOfSmallFiles +
         ",SizeOfSmallFiles:" + r._2.smallFileTotalSize +
         ",possibleCompactionFileCount:" + possibleCompactionFileCount +
-        ",reductionOfFilePercentage:" + possibleCompactionFileCount / r._2.numberOfFiles)
+        ",reductionOfFilePercentage:" + possibleCompactionFileCount.toDouble / r._2.numberOfFiles.toDouble)
+
+      summaryFolderStat += r._2
     })
+
+    val possibleCompactionFileCount = (summaryFolderStat.numberOfFiles - summaryFolderStat.numberOfSmallFiles) +
+      (1 + (summaryFolderStat.smallFileTotalSize / (recommendedFileSizeInMb * 1000000)))
+
+    println("Path:Summary"  +
+      ",NumberOfFiles:" + summaryFolderStat.numberOfFiles +
+      ",NumberOfSmallFiles:" + summaryFolderStat.numberOfSmallFiles +
+      ",SizeOfSmallFiles:" + summaryFolderStat.smallFileTotalSize +
+      ",possibleCompactionFileCount:" + possibleCompactionFileCount +
+      ",reductionOfFilePercentage:" + possibleCompactionFileCount.toDouble / summaryFolderStat.numberOfFiles.toDouble)
+
   }
 
   def collectFolderStats(fs:FileSystem,
                          folder:Path,
                          fileStatusIterator: RemoteIterator[FileStatus],
                          smallFileSizeThresholdInMb:Int ): FolderStats = {
+    print(".")
     val folderStats = new FolderStats
     while (fileStatusIterator.hasNext) {
       val fileStatus = fileStatusIterator.next()
