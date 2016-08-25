@@ -69,13 +69,13 @@ object ReviewTablesTool {
       val possibleCompactionFileCount = (summaryFolderStat.numberOfFiles - summaryFolderStat.numberOfSmallFiles) +
         (1 + (summaryFolderStat.smallFileTotalSize / (recommendedFileSizeInMb * 1000000)))
 
-
       println(str + ",Summary"  +
         "," + summaryFolderStat.numberOfFiles +
         "," + summaryFolderStat.numberOfSmallFiles +
         "," + summaryFolderStat.smallFileTotalSize +
         "," + possibleCompactionFileCount +
-        "," + possibleCompactionFileCount.toDouble / summaryFolderStat.numberOfFiles.toDouble)
+        "," + possibleCompactionFileCount.toDouble / summaryFolderStat.numberOfFiles.toDouble +
+        "," + threadsRunning)
     }
   }
 
@@ -159,30 +159,32 @@ class ProcessFolder(folder:String, fs:FileSystem,
 
   def run() {
 
+
     ReviewTablesTool.addThread()
 
-    val path = new Path(folder)
+    try {
+      val path = new Path(folder)
 
-    val fileStatusIterator = fs.listStatusIterator(path)
+      val fileStatusIterator = fs.listStatusIterator(path)
 
-    var totalFiles = 0
-    var totalSmallerFiles = 0
+      val folderStats = ReviewTablesTool.collectFolderStats(fs, path, fileStatusIterator, smallFileSizeThresholdInMb)
 
-    val folderStats = ReviewTablesTool.collectFolderStats(fs, path, fileStatusIterator, smallFileSizeThresholdInMb)
+      val possibleCompactionFileCount = (folderStats.numberOfFiles - folderStats.numberOfSmallFiles) +
+        (1 + (folderStats.smallFileTotalSize / (recommendedFileSizeInMb * 1000000)))
 
-    val possibleCompactionFileCount = (folderStats.numberOfFiles - folderStats.numberOfSmallFiles) +
-      (1 + (folderStats.smallFileTotalSize / (recommendedFileSizeInMb * 1000000)))
+      ReviewTablesTool.printFolderStats(folder +
+        "," + folderStats.numberOfFiles +
+        "," + folderStats.numberOfSmallFiles +
+        "," + folderStats.smallFileTotalSize +
+        "," + possibleCompactionFileCount +
+        "," + possibleCompactionFileCount.toDouble / folderStats.numberOfFiles.toDouble)
 
-    ReviewTablesTool.printFolderStats( folder +
-      "," + folderStats.numberOfFiles +
-      "," + folderStats.numberOfSmallFiles +
-      "," + folderStats.smallFileTotalSize +
-      "," + possibleCompactionFileCount +
-      "," + possibleCompactionFileCount.toDouble / folderStats.numberOfFiles.toDouble)
-
-    ReviewTablesTool.addToTotalStats(folderStats)
-
-    ReviewTablesTool.finishedThread()
+      ReviewTablesTool.addToTotalStats(folderStats)
+    } catch {
+      case e: Exception => // { do nothing }
+    } finally {
+      ReviewTablesTool.finishedThread()
+    }
   }
 }
 
