@@ -1,6 +1,7 @@
 package com.cloudera.sa.cap1.largefileutil
 
 import java.io.File
+import java.util.concurrent.{ExecutorService, Executors}
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, RemoteIterator}
@@ -8,73 +9,99 @@ import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, RemoteIterator}
 import scala.io.Source
 
 object ReviewTablesTool {
+  val summaryFolderStat = new FolderStats()
+  var recommendedFileSizeInMb:Int = 0
+  var threadsRunning = 0
+
   def main(args:Array[String]): Unit = {
 
     if (args.length == 0) {
-      println("<inputFileForListOfTables> <FileSizeThresholdInMB> <recommendedFileSize>")
+      println("<inputFileForListOfTables> <FileSizeThresholdInMB> <recommendedFileSize> <threads>")
     }
 
     val folderPath = args(0)
     val smallFileSizeThresholdInMb = args(1).toInt
-    val recommendedFileSizeInMb = args(2).toInt
+    recommendedFileSizeInMb = args(2).toInt
+    val numberOfThreads = args(3).toInt
 
     val tableFolders = Source.fromFile(new File(folderPath)).getLines().map(line => {
-      println(line)
-      println(line.split('\t').length)
       line.split('\t')(4)
     })
 
     val fs = FileSystem.get(new Configuration())
 
-    val folderStatMap = tableFolders.map(folder => {
+    val pool: ExecutorService = Executors.newFixedThreadPool(numberOfThreads)
 
-      val path = new Path(folder)
+    try {
+      tableFolders.foreach(folder => {
 
-      val fileStatusIterator = fs.listStatusIterator(path)
+        pool.execute(new ProcessFolder(folder, fs,
+          smallFileSizeThresholdInMb,
+          recommendedFileSizeInMb))
 
-      var totalFiles = 0
-      var totalSmallerFiles = 0
+      })
 
-      val folderStats = collectFolderStats(fs, path, fileStatusIterator, smallFileSizeThresholdInMb)
 
-      (path, folderStats)
-    })
+    } finally {
 
-    val summaryFolderStat = new FolderStats()
+      while (threadsRunning != 0) {
+        Thread.sleep(100)
+      }
 
-    folderStatMap.foreach(r => {
-
-      println("Starting: " + r._1)
-      val possibleCompactionFileCount = (r._2.numberOfFiles - r._2.numberOfSmallFiles) +
-        (1 + (r._2.smallFileTotalSize / (recommendedFileSizeInMb * 1000000)))
-
-      println("Path:" + r._1 +
-        ",NumberOfFiles:" + r._2.numberOfFiles +
-        ",NumberOfSmallFiles:" + r._2.numberOfSmallFiles +
-        ",SizeOfSmallFiles:" + r._2.smallFileTotalSize +
-        ",possibleCompactionFileCount:" + possibleCompactionFileCount +
-        ",reductionOfFilePercentage:" + possibleCompactionFileCount.toDouble / r._2.numberOfFiles.toDouble)
-
-      summaryFolderStat += r._2
-    })
+      pool.shutdown()
+    }
 
     val possibleCompactionFileCount = (summaryFolderStat.numberOfFiles - summaryFolderStat.numberOfSmallFiles) +
       (1 + (summaryFolderStat.smallFileTotalSize / (recommendedFileSizeInMb * 1000000)))
 
-    println("Path:Summary"  +
-      ",NumberOfFiles:" + summaryFolderStat.numberOfFiles +
-      ",NumberOfSmallFiles:" + summaryFolderStat.numberOfSmallFiles +
-      ",SizeOfSmallFiles:" + summaryFolderStat.smallFileTotalSize +
-      ",possibleCompactionFileCount:" + possibleCompactionFileCount +
-      ",reductionOfFilePercentage:" + possibleCompactionFileCount.toDouble / summaryFolderStat.numberOfFiles.toDouble)
+    printFolderStats("Summary"  +
+      "," + summaryFolderStat.numberOfFiles +
+      "," + summaryFolderStat.numberOfSmallFiles +
+      "," + summaryFolderStat.smallFileTotalSize +
+      "," + possibleCompactionFileCount +
+      "," + possibleCompactionFileCount.toDouble / summaryFolderStat.numberOfFiles.toDouble)
 
+  }
+
+  def printFolderStats(str:String): Unit = {
+    this.synchronized {
+
+      val possibleCompactionFileCount = (summaryFolderStat.numberOfFiles - summaryFolderStat.numberOfSmallFiles) +
+        (1 + (summaryFolderStat.smallFileTotalSize / (recommendedFileSizeInMb * 1000000)))
+
+
+      println(str + ",Summary"  +
+        "," + summaryFolderStat.numberOfFiles +
+        "," + summaryFolderStat.numberOfSmallFiles +
+        "," + summaryFolderStat.smallFileTotalSize +
+        "," + possibleCompactionFileCount +
+        "," + possibleCompactionFileCount.toDouble / summaryFolderStat.numberOfFiles.toDouble)
+    }
+  }
+
+  def addThread(): Unit = {
+    this.synchronized {
+      threadsRunning += 1
+    }
+  }
+
+  def finishedThread(): Unit = {
+    this.synchronized {
+      threadsRunning -= 1
+    }
+  }
+
+  def addToTotalStats(folderStats: FolderStats): Unit = {
+    this.synchronized {
+      summaryFolderStat += folderStats
+    }
   }
 
   def collectFolderStats(fs:FileSystem,
                          folder:Path,
                          fileStatusIterator: RemoteIterator[FileStatus],
                          smallFileSizeThresholdInMb:Int ): FolderStats = {
-    print(".")
+
     val folderStats = new FolderStats
     while (fileStatusIterator.hasNext) {
       val fileStatus = fileStatusIterator.next()
@@ -123,6 +150,40 @@ class FolderStats(var numberOfFiles:Int = 0,
     smallFileTotalSize += that.smallFileTotalSize
   }
 
+}
+
+class ProcessFolder(folder:String, fs:FileSystem,
+                    smallFileSizeThresholdInMb:Int,
+                    recommendedFileSizeInMb:Int) extends Runnable {
+  def message = (Thread.currentThread.getName() + "\n").getBytes
+
+  def run() {
+
+    ReviewTablesTool.addThread()
+
+    val path = new Path(folder)
+
+    val fileStatusIterator = fs.listStatusIterator(path)
+
+    var totalFiles = 0
+    var totalSmallerFiles = 0
+
+    val folderStats = ReviewTablesTool.collectFolderStats(fs, path, fileStatusIterator, smallFileSizeThresholdInMb)
+
+    val possibleCompactionFileCount = (folderStats.numberOfFiles - folderStats.numberOfSmallFiles) +
+      (1 + (folderStats.smallFileTotalSize / (recommendedFileSizeInMb * 1000000)))
+
+    ReviewTablesTool.printFolderStats( folder +
+      "," + folderStats.numberOfFiles +
+      "," + folderStats.numberOfSmallFiles +
+      "," + folderStats.smallFileTotalSize +
+      "," + possibleCompactionFileCount +
+      "," + possibleCompactionFileCount.toDouble / folderStats.numberOfFiles.toDouble)
+
+    ReviewTablesTool.addToTotalStats(folderStats)
+
+    ReviewTablesTool.finishedThread()
+  }
 }
 
 
