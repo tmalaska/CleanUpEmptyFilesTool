@@ -11,6 +11,7 @@ import scala.io.Source
 object WhereAreTheFiles {
 
   var tableFolderSet: Set[String] = null
+  var globalFolderStats = new FolderWhereStats
 
   def main(args:Array[String]): Unit = {
     if (args.length == 0) {
@@ -51,6 +52,7 @@ object WhereAreTheFiles {
     })
 
     folderWhereStat.addDirector(isTable)
+    globalFolderStats.addDirector(isTable)
 
     while (fileStatusIterator.hasNext) {
       val fileStatus = fileStatusIterator.next()
@@ -66,14 +68,17 @@ object WhereAreTheFiles {
 
       if (fileStatus.isDirectory) {
 
-        folderWhereStat += collectFolderStats(fs,
+        val childrenStats = collectFolderStats(fs,
           fileStatus.getPath,
           fs.listStatusIterator(fileStatus.getPath))
+
+        folderWhereStat += childrenStats
       } else {
         folderWhereStat.addNormalFile(isTable)
+        globalFolderStats.addNormalFile(isTable)
       }
     }
-    println(folderString + "," + folderWhereStat.toString())
+    println(folderString + "," + folderWhereStat.toString() + "," + globalFolderStats)
 
     folderWhereStat
   }
