@@ -38,11 +38,7 @@ object WhereAreTheFiles {
     val folderWhereStat = new FolderWhereStats
 
     var folderString = folder.toString
-    val colonIndex = folderString.indexOf(':')
-    if (colonIndex > 0) {
-      folderString = folderString.substring(colonIndex + 1)
-    }
-
+    
     var isTable = false
 
     tableFolderSet.foreach(p => {
