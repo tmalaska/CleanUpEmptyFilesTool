@@ -28,4 +28,4 @@ hadoop jar CleanUpEmptyFilesTool.jar com.cloudera.sa.cap1.largefileutil.ReviewTa
 This tool is designed to look through HDFS and mark which files and folders are in hive tables are not
 
 ##How to run
-hadoop jar CleanUpEmptyFilesTool.jar com.cloudera.sa.cap1.largefileutil.WhereAretheFiles <inputFileForListOfTables> <startingHDFSPath>
+hadoop jar CleanUpEmptyFilesTool.jar com.cloudera.sa.cap1.largefileutil.WhereAreTheFiles <inputFileForListOfTables> <startingHDFSPath>
