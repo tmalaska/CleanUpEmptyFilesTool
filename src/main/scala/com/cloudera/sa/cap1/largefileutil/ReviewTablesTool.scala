@@ -38,16 +38,12 @@ object ReviewTablesTool {
         pool.execute(new ProcessFolder(folder, fs,
           smallFileSizeThresholdInMb,
           recommendedFileSizeInMb))
-
       })
 
-
     } finally {
-
       while (threadsRunning != 0) {
         Thread.sleep(100)
       }
-
       pool.shutdown()
     }
 
@@ -181,7 +177,13 @@ class ProcessFolder(folder:String, fs:FileSystem,
 
       ReviewTablesTool.addToTotalStats(folderStats)
     } catch {
-      case e: Exception => // { do nothing }
+      case e: Exception => {
+        ReviewTablesTool.printFolderStats(folder + "," + "0" +
+          "," + "0" +
+          "," + "0" +
+          "," + "0" +
+          "," + "0")
+      }
     } finally {
       ReviewTablesTool.finishedThread()
     }
