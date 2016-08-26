@@ -17,6 +17,7 @@ object ReviewTablesTool {
 
     if (args.length == 0) {
       println("<inputFileForListOfTables> <FileSizeThresholdInMB> <recommendedFileSize> <threads>")
+      return
     }
 
     val folderPath = args(0)

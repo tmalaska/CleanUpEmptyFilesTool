@@ -23,3 +23,9 @@ This tool is designed to look through your tables and tell you if you could bene
 
 ##How to run
 hadoop jar CleanUpEmptyFilesTool.jar com.cloudera.sa.cap1.largefileutil.ReviewTablesTool <inputFileForListOfTables> <FileSizeThresholdInMB> <recommendedFileSize>
+
+#WhereAreTheFiles
+This tool is designed to look through HDFS and mark which files and folders are in hive tables are not
+
+##How to run
+hadoop jar CleanUpEmptyFilesTool.jar com.cloudera.sa.cap1.largefileutil.WhereAretheFiles <inputFileForListOfTables> <startingHDFSPath>
