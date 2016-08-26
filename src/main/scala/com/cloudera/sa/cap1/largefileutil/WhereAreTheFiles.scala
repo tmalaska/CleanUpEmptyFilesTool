@@ -74,25 +74,34 @@ object WhereAreTheFiles {
 
         folderWhereStat += childrenStats
       } else {
-        folderWhereStat.addNormalFile(isTable)
-        globalFolderStats.addNormalFile(isTable)
+        folderWhereStat.addNormalFile(isTable, len)
+        globalFolderStats.addNormalFile(isTable, len)
       }
     }
-    println(folderString + "," + folderWhereStat.toString() + "," + globalFolderStats)
+
+    val folderStatus = fs.getFileStatus(folder)
+
+    if (!folderString.contains("=")) {
+      println(folderString + "," + folderStatus.getOwner + "," + folderStatus.getGroup + "," + folderWhereStat.toString() + "," + globalFolderStats)
+    }
 
     folderWhereStat
   }
 
   class FolderWhereStats(var tableFileCount:Int = 0,
-                    var nonTableFileCount:Int = 0,
+                         var nonTableFileCount:Int = 0,
                          var tableFolderCount:Int = 0,
-                         var nonTableFolderCount:Int = 0) {
+                         var nonTableFolderCount:Int = 0,
+                         var tableFileSize:Long = 0,
+                         var nonTableFileSize:Long = 0) {
 
-    def addNormalFile (isTableFile:Boolean): Unit = {
+    def addNormalFile (isTableFile:Boolean, len:Long): Unit = {
       if (isTableFile) {
         tableFileCount += 1
+        tableFileSize += len
       } else {
         nonTableFileCount += 1
+        nonTableFileSize += len
       }
     }
 
@@ -115,7 +124,9 @@ object WhereAreTheFiles {
       tableFileCount + "," +
         nonTableFileCount + "," +
         tableFolderCount + "," +
-        nonTableFolderCount
+        nonTableFolderCount + "," +
+        tableFileSize + "," +
+        nonTableFileSize
     }
 
   }
