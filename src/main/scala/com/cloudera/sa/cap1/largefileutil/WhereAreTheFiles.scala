@@ -98,6 +98,8 @@ object WhereAreTheFiles {
             fileStatus.getPath,
             fs.listStatusIterator(fileStatus.getPath))
 
+          folderWhereStat += childrenStats
+
           childrenStats
         }
 
