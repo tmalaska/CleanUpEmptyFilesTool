@@ -1,6 +1,8 @@
 package com.cloudera.sa.cap1.largefileutil
 
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{Callable, ExecutorService, Executors, Future}
 
@@ -18,6 +20,7 @@ object WhereAreTheFiles {
   var numberOfThreads:Int = 0
   var pool: ExecutorService= null
   val threadsRunningAtomic:AtomicInteger = new AtomicInteger(0)
+  val locker:Object = new Object
 
   def main(args:Array[String]): Unit = {
     if (args.length == 0) {
@@ -38,6 +41,7 @@ object WhereAreTheFiles {
     val fs = FileSystem.get(new Configuration())
 
     println("summary," + collectFolderStats(fs, startingPath, fs.listStatusIterator(startingPath)).toString())
+
   }
 
   def collectFolderStats(fs:FileSystem,
@@ -113,7 +117,10 @@ object WhereAreTheFiles {
     val folderStatus = fs.getFileStatus(folder)
 
     if (!folderString.contains("=")) {
-      println(folderString + "," + folderStatus.getOwner + "," + folderStatus.getGroup + "," + folderWhereStat.toString() + "," + globalFolderStats)
+      val str = folderString + "," + folderStatus.getOwner + "," + folderStatus.getGroup + "," + folderWhereStat.toString() + "," + globalFolderStats
+      locker.synchronized {
+        println(str)
+      }
     }
 
     folderWhereStat
@@ -158,13 +165,16 @@ object WhereAreTheFiles {
     }
 
     override def toString(): String = {
+
+      val dateFormat = new SimpleDateFormat("ddMMyyyy")
+
       tableFileCount + "," +
         nonTableFileCount + "," +
         tableFolderCount + "," +
         nonTableFolderCount + "," +
         tableFileSize + "," +
         nonTableFileSize + "," +
-        earliestChangeDate
+        dateFormat.format(new Date(earliestChangeDate))
     }
   }
 }
