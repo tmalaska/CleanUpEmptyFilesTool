@@ -29,3 +29,16 @@ This tool is designed to look through HDFS and mark which files and folders are 
 
 ##How to run
 hadoop jar CleanUpEmptyFilesTool.jar com.cloudera.sa.cap1.largefileutil.WhereAreTheFiles <inputFileForListOfTables> <startingHDFSPath>
+
+#CountFilesInHiveTables
+This tool with query the hive metastore dump to count number of files and blocks in a table
+
+##Hive to run
+spark-submit --class com.cloudera.sa.cap1.spark.CountFilesInHiveTables \ 
+--master yarn --deploy-mode client --executor-memory 512MB --num-executors 2 --executor-cores 1 \ 
+CleanUpEmptyFilesTool.jar \ 
+l \
+<inputFolder> \
+<inputHiveTable> \
+<outputFolder> \
+<outputTable>
