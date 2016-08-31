@@ -87,14 +87,25 @@ object ReportBuilding {
 
     sql.createDataFrame(rowRdd, emptyDf.schema).registerTempTable("folder_stat")
 
-    val topTenPaths = sql.sql("select owner, folder_nm, path_length, non_hive_file_cnt " +
+    sql.sql("select owner, folder_nm, path_length, non_hive_file_cnt " +
       " from folder_stat " +
+      " where path_length >= 6 " +
       " order by non_hive_file_cnt desc " +
-      " limit 10")
+      " limit 20").collect().foreach(println)
 
     println("----")
-    topTenPaths.collect().foreach(println)
-    println("----")
+
+    sql.sql("select owner, folder_nm, path_length, non_hive_file_cnt " +
+      " from folder_stat " +
+      " where path_length >= 7 " +
+      " order by non_hive_file_cnt desc " +
+      " limit 20").collect().foreach(println)
+
+
+
+
+
+
     sc.stop()
   }
 }
